@@ -46,3 +46,6 @@ Desktop.ini
 # Reports directory (excluded from git tracking)
 reports/
 
+# Obsidian local UI workspace & cache settings
+vault/.obsidian/
+.obsidian/
