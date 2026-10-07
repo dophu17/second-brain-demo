@@ -18,10 +18,10 @@ class NoteItem(BaseModel):
 
 class CreateNoteRequest(BaseModel):
     title: str
-    folder: Optional[str] = "00_Inbox"
+    folder: Optional[str] = "00_Nhat_Ky_Trang_Trai"
     tags: List[str] = Field(default_factory=list)
     content: str
-    author: Optional[str] = "Executive"
+    author: Optional[str] = "Farm Manager"
 
 class UpdateNoteRequest(BaseModel):
     relative_path: str

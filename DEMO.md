@@ -1,12 +1,35 @@
-# BÁO CÁO THỐNG KÊ KẾT QUẢ DEMO PROTOTYPE (PoC)
+# BÁO CÁO CẤU TRÚC KHOA HỌC & KĨ THUẬT DEMO BỘ NÃO THỨ 2 QUẢN LÝ TRANG TRẠI NÔNG NGHIỆP NHẬT BẢN (DEMO.md)
 **Dự án:** Người làm cho con người trở thành Thiên tài AI (人を天才にするAIプロダクト / Second Brain AI)
 
 > **Ngày cập nhật:** 07/10/2026  
-> **Đơn vị thực hiện:** Team Barocco (Phú - Dev Solo Implementation, Độ - PM)
+> **Miền ứng dụng:** Nông nghiệp Thông minh & Quản lý Trang trại Nhật Bản (スマート農業・農場管理)  
+> **Phân công thực hiện:** Phú (Dev Solo Implementation), Độ (PM)  
+> **Lưu ý phạm vi:** Giản lược phần giao diện LINE Bot/Voice STT, tập trung 100% vào **Kiến trúc Cốt lõi AI Agent, NetworkX Knowledge Graph & Obsidian Vault Nông nghiệp**.
 
 ---
 
-## 🏗️ 1. Mô hình Kiến trúc Demo (Docker + Local Ollama + Obsidian Vault)
+## 📂 1. Cấu trúc Danh mục Quản lý Nông nghiệp Khoa học (Scientific Farm Vault Structure)
+
+Thư mục `10_Projects` cũ trước đây là tên mặc định của phương pháp Zettelkasten chung. Khi áp dụng trực tiếp cho miền Nông nghiệp Nhật Bản, thư mục được tái cấu trúc thành các danh mục chuyên biệt, khoa học và dễ quản lý:
+
+```
+vault/
+├── 00_Nhat_Ky_Trang_Trai/         # Tiếp nhận ghi chú hàng ngày & Nhật ký canh tác tự động
+│   └── Welcome_Nong_Trai.md
+├── 10_Trong_Trot/                 # Quy trình & Kỹ thuật trồng trọt nông sản Nhật Bản
+│   └── Crown_Melon_Shizuoka.md    # Kỹ thuật trồng Dưa lưới Shizuoka (bón Kali, giảm 30% tưới nước)
+├── 20_Chan_Nuoi/                  # Quy trình chăn nuôi, dinh dưỡng & thú y gia súc
+│   └── Wagyu_Kagoshima.md         # Quy trình chăn nuôi & chăm sóc sức khỏe Bò Wagyu A5
+├── 30_Doi_Tac_Khach_Hang/         # Khách hàng thân thiết & Đơn vị bao tiêu xuất khẩu
+│   ├── Hiep_Hoi_JA.md             # Hiệp hội Nông nghiệp Nhật Bản (JA農協)
+│   └── Khach_Hang_Kenichi.md      # Hồ sơ khách hàng VIP thu mua (đã lưu sở thích: Trà đạo, Golf, Bút máy)
+└── 40_Gia_Ca_Thi_Truong/          # Báo giá thị trường & biến động chi phí vật tư nông nghiệp
+    └── Gia_Ca_Nong_San_Nhat_Ban.md
+```
+
+---
+
+## 🏗️ 2. Mô hình Kiến trúc Kỹ thuật Hệ thống (Docker + Ollama Local + Obsidian Vault)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -32,40 +55,50 @@
 
 ---
 
-## 🟢 2. CÁC TÍNH NĂNG / CÔNG NGHỆ ĐÃ DEMO THÀNH CÔNG (Current Demo PoC)
+## 🟢 3. CÁC KỸ THUẬT ĐÃ TRIỂN KHAI THÀNH CÔNG (Implemented Core Technologies)
 
-| STT | Tính năng / Công nghệ | Trạng thái Demo | Chi tiết Kỹ thuật đã Thực thi |
+| STT | Kỹ thuật / Công nghệ | Trạng thái | Chi tiết Kỹ thuật đã Thực thi |
 | --- | --- | --- | --- |
-| 1 | **Docker Containerization** | 🟢 **Hoàn thành** | Đóng gói ứng dụng Python 3.10 FastAPI trong Docker (`Dockerfile` + `docker-compose.yml`), chạy ổn định tại cổng `http://localhost:8008`. |
-| 2 | **Local Ollama Integration** | 🟢 **Hoàn thành** | Container Docker kết nối trực tiếp với Ollama LLM ở máy host qua `http://host.docker.internal:11434` (chạy hoàn toàn offline & bảo mật). |
-| 3 | **Obsidian Vault Local Mount** | 🟢 **Hoàn thành** | Mount volume `./vault:/app/vault`. Mọi ghi chú AI tự động sinh ra lập tức xuất hiện ở ổ cứng máy bạn để mở bằng ứng dụng Obsidian. |
-| 4 | **Python Obsidian Parser Engine** | 🟢 **Hoàn thành** | Module `obsidian_parser.py` dùng `python-frontmatter` bóc tách YAML metadata và dùng Regex trích xuất liên kết 2 chiều `[[Wiki-links]]`. |
-| 5 | **NetworkX Knowledge Graph** | 🟢 **Hoàn thành** | Module `graph_engine.py` dựng Đồ thị Tri thức (Nodes & Edges), tính toán liên kết ngược (**Backlinks**) và trích xuất ngữ cảnh liên quan (Graph RAG Context). |
-| 6 | **Hermes Agent Tool Calling** | 🟢 **Hoàn thành** | Module `hermes_agent.py` xử lý ChatML format, nhận diện & thực thi tự động các Tool Call (`create_note`, `search_notes`). |
-| 7 | **FastAPI Server & REST API** | 🟢 **Hoàn thành** | Cung cấp Webhook endpoint (`/api/webhook`) và giao diện thử nghiệm Swagger UI tự động tại `http://localhost:8008/docs`. |
-| 8 | **Script Test E2E Tự động** | 🟢 **Hoàn thành** | Script `scripts/test_demo.py` kiểm thử tự động toàn bộ luồng từ Input thoại/text $\rightarrow$ AI Tool Call $\rightarrow$ Ghi Vault $\rightarrow$ Cập nhật Graph. |
+| 1 | **Local-first Persistence & Volume Mount** | 🟢 **Hoàn thành** | Dữ liệu lưu trữ dạng Markdown `.md` chuẩn Zettelkasten. Mount volume Docker (`./vault:/app/vault`) giúp đồng bộ thời gian thực với phần mềm Obsidian trên máy host. |
+| 2 | **YAML Frontmatter & Wiki-Links Parser** | 🟢 **Hoàn thành** | Module `obsidian_parser.py` bóc tách tự động metadata cấu trúc (tags, date, author, category) và trích xuất liên kết ngữ nghĩa hai chiều `[[Wiki-links]]` bằng Regex. |
+| 3 | **Directed Knowledge Graph Engine** | 🟢 **Hoàn thành** | Module `graph_engine.py` dùng **NetworkX** xây dựng Đồ thị Tri thức (Nodes & Edges), tính toán liên kết ngược (**Backlinks**) và trích xuất ngữ cảnh khu vực đồ thị (Graph Neighborhood Context). |
+| 4 | **ChatML Agent Tool Calling Core** | 🟢 **Hoàn thành** | Module `hermes_agent.py` tích hợp Ollama Local LLM, định dạng ChatML `<tools>`, `<tool_call>`, tự động thực thi Tool Calling (`create_note`, `update_note`, `search_notes`). |
+| 5 | **Entity-Centric Context Ingestion** | 🟢 **Hoàn thành** | Tự động đọc và trích xuất thuộc tính thực thể (ví dụ: sở thích trà đạo, sinh nhật của ngài Kenichi trong `Khach_Hang_Kenichi.md`) để AI tự động suy luận & gợi ý quà tặng / quyết định cá nhân hóa. |
+| 6 | **Docker Containerization & Network Host Routing** | 🟢 **Hoàn thành** | Đóng gói ứng dụng bằng Docker Compose (`ports: 8008:8000`), định tuyến mạng `host.docker.internal:11434` kết nối Ollama offline không cần gọi API đám mây. |
+| 7 | **RESTful API & OpenAPI Interactive UI** | 🟢 **Hoàn thành** | FastAPI server cung cấp các endpoints `/api/demo/chat`, `/api/demo/notes`, `/api/demo/graph` và Swagger UI tương tác tại `http://localhost:8008/docs`. |
 
 ---
 
-## 🟡 3. CÁC TÍNH NĂNG / CÔNG NGHỆ CHƯA TRIỂN KHAI (Kế hoạch Phase 2 & Phase 3)
+## 🟡 4. CÁC KỸ THUẬT CẦN TRIỂN KHAI THÊM (Nâng cấp Cốt lõi AI & Data)
 
-| STT | Tính năng / Công nghệ | Kế hoạch Phase | Chi tiết Dự kiến Triển khai |
+| STT | Kỹ thuật / Công nghệ Nâng cấp | Kế hoạch Phase | Chi tiết Dự kiến Triển khai |
 | --- | --- | --- | --- |
-| 1 | **LINE Bot SDK Thực tế** | **Phase 1/3** | Hiện tại mới mock Webhook. Sẽ kết nối tài khoản **LINE Official Account** thực tế để nhận/gửi tin nhắn trực tiếp trên điện thoại. |
-| 2 | **Faster-Whisper Voice STT** | **Phase 1/3** | Hiện tại đang mock nhận text giọng nói. Sẽ nhúng thư viện `faster-whisper` để nhận file ghi âm `.m4a` từ LINE và bóc văn bản tự động. |
-| 3 | **ChromaDB Vector Hybrid Search** | **Phase 2** | Hiện tại đang dùng NetworkX Graph & Keyword Search. Sẽ tích hợp ChromaDB Vector DB kết hợp Embedding Model để thực hiện **Graph RAG Hybrid Search**. |
-| 4 | **Bộ Prompts Multi-Persona Đầy đủ** | **Phase 3** | Sẽ bổ sung bộ System Prompts đóng vai chuyên sâu cho từng vị trí (CEO, CFO, CMO, CTO, Personal Assistant). |
-| 5 | **LINE Flex Messages & Button UX** | **Phase 3** | Thiết kế giao diện thẻ UI đẹp mắt Flex Messages trên LINE kèm các nút tương tác bấm nhanh để "Sửa Note" hoặc "Nối Nội Dung Note Cũ". |
+| 1 | **ChromaDB Vector Store & Hybrid Search (Graph RAG)** | **Phase 2** | Tích hợp ChromaDB Vector DB kết hợp Embedding Model (`bge-m3`). Kết hợp **Vector Semantic Search** (tìm kiếm theo ngữ nghĩa) + **NetworkX Graph Traversal** (tìm kiếm theo liên kết 2 chiều). |
+| 2 | **Advanced Multi-Persona Prompt Engineering** | **Phase 3** | Xây dựng bộ System Prompts đóng vai chuyên sâu cho các nhân sự ảo: **CEO Trang trại** (Tầm nhìn & Lộ trình), **CFO Nông sản** (Chi phí & Giá thị trường), **Second Brain** (Trợ lý cá nhân). |
+| 3 | **Automatic Vault Note Refactoring & Conflict Resolution** | **Phase 3** | Khi có thông tin mới trùng lặp hoặc mâu thuẫn, AI Agent tự động phát hiện và thực thi `update_note` để gộp/nối nội dung note cũ mà không làm hỏng cấu trúc YAML Frontmatter. |
+| 4 | **Graph RAG Memory Summarization** | **Phase 3** | Tự động tạo ghi chú tóm tắt tuần/tháng (Weekly/Monthly Knowledge Summary) bóc tách tự động từ tất cả nhật ký trang trại trong Vault. |
 
 ---
 
-## 🚀 4. Hướng dẫn Chạy & Kiểm thử Nhanh
+## 🌾 5. Kịch bản Demo Nông nghiệp Thông minh Nhật Bản (Japanese Smart Farm)
+
+1. **Giao tiếp & Tư vấn Kỹ thuật Trồng trọt:**
+   - **Câu hỏi:** *"Lịch bón phân cho dưa lưới [[Crown_Melon_Shizuoka]] giai đoạn tạo vân lưới như thế nào?"*
+   - **Kết quả:** AI Agent dùng **Graph RAG** trích xuất node `Crown_Melon_Shizuoka`, trả lời chính xác quy trình bón phân Kali & giảm 30% tưới nước, đồng thời tự động kích hoạt Tool Call `create_note` lưu nhật ký nông trại vào `00_Nhat_Ky_Trang_Trai/`!
+
+2. **Giao tiếp & Tư vấn Quan hệ Khách hàng Thân thiết (CRM & Gift Suggestion):**
+   - **Câu hỏi:** *"Sinh nhật ngài [[Khach_Hang_Kenichi]] nên tặng gì?"*
+   - **Kết quả:** AI Agent truy vết node `Khach_Hang_Kenichi`, đọc toàn bộ thuộc tính sở thích (Trà đạo Matcha, chơi Golf, bút máy cổ) và tư vấn 3 món quà tinh tế nhất!
+
+---
+
+## 🚀 6. Hướng dẫn Khởi chạy & Kiểm thử Nhanh
 
 ### 1. Khởi chạy bằng Docker:
 ```bash
 docker compose up -d
 ```
-- **Swagger UI (Docs):** `http://localhost:8008/docs`
+- **Giao diện Swagger UI (Docs):** `http://localhost:8008/docs`
 - **Root Status API:** `http://localhost:8008/`
 
 ### 2. Chạy Script kiểm thử E2E tự động:

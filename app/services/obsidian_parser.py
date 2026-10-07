@@ -67,12 +67,16 @@ class ObsidianParser:
         return notes
 
     def search_notes(self, query: str) -> List[NoteItem]:
-        """Tìm kiếm ghi chú theo từ khoá trong tiêu đề hoặc nội dung."""
-        query_lower = query.lower()
+        """Tìm kiếm ghi chú theo từ khoá trong tiêu đề, tên file, hoặc nội dung."""
+        query_lower = query.lower().strip()
         all_notes = self.read_all_notes()
         results = []
         for note in all_notes:
-            if query_lower in note.title.lower() or query_lower in note.content.lower():
+            stem = Path(note.filename).stem.lower()
+            if (query_lower in note.title.lower() or 
+                query_lower in note.content.lower() or 
+                query_lower in stem or 
+                query_lower in note.relative_path.lower()):
                 results.append(note)
         return results
 

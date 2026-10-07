@@ -10,7 +10,7 @@ class Settings:
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "hermes3")
     
     # Obsidian Vault Local Directory
-    VAULT_PATH: Path = Path(os.getenv("VAULT_PATH", "/app/vault"))
+    VAULT_PATH: Path = Path(os.getenv("VAULT_PATH")) if os.getenv("VAULT_PATH") else (Path(__file__).resolve().parent.parent / "vault")
     
     # LINE Bot Settings (Mock/Production)
     LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "mock_secret")

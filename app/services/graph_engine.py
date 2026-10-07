@@ -11,11 +11,15 @@ class KnowledgeGraphEngine:
         self.graph.clear()
         notes = obsidian_parser.read_all_notes()
         
-        # Thêm tất cả các Node
+        from pathlib import Path
+        # Thêm tất cả các Node (dùng cả filename stem lẫn title để khớp [[Wiki-links]])
         for note in notes:
-            node_id = note.title.strip()
+            stem = Path(note.filename).stem.strip()
+            title = note.title.strip()
+            node_id = stem if stem else title
             self.graph.add_node(
                 node_id,
+                title=title,
                 path=note.relative_path,
                 tags=note.metadata.tags,
                 author=note.metadata.author
@@ -23,7 +27,9 @@ class KnowledgeGraphEngine:
             
         # Thêm các cạnh Edges (Wiki-links)
         for note in notes:
-            source_id = note.title.strip()
+            stem = Path(note.filename).stem.strip()
+            title = note.title.strip()
+            source_id = stem if stem else title
             for target_link in note.wiki_links:
                 target_id = target_link.strip()
                 if not self.graph.has_node(target_id):
