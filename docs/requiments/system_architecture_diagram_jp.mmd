@@ -1,0 +1,41 @@
+graph LR
+    subgraph Layer1["📱 1. 利用者層 (USER INTERFACE)"]
+        User["👤 利用者 (エグゼクティブ / ユーザー)"]
+        LINE["💬 LINE Bot アプリ (スマホ / 8インチタブレット)<br/>• 音声1タッチ入力 (Whisper STT)<br/>• 自然言語テキスト入力<br/>• LINE Flex Message 受信 (カードUI)<br/>• 過去メモ編集・追記ボタン"]
+        User -->|1. 音声・テキスト送信| LINE
+    end
+
+    subgraph Layer2["⚡ 2. ゲートウェイ・バックエンド層 (FASTAPI)"]
+        API["🚀 FastAPI Webhook サーバー<br/>• Webhook ハンドラー (line-bot-sdk-python)<br/>• LINE 署名検証 (セキュリティ認証)<br/>• 非同期処理 Async/Await"]
+        LINE -->|2. Webhook HTTP POST| API
+    end
+
+    subgraph Layer3["🔄 3. パイプライン・処理層 (PROCESSING PIPELINE)"]
+        Whisper["🎙️ Faster-Whisper STT エンジン<br/>• 音声ファイル .m4a/.wav -> テキスト変換"]
+        Parser["📄 Python Obsidian パーサー<br/>• python-frontmatter (YAMLメタデータ抽出)<br/>• Regex re (Wiki-links [[...]] 検出)"]
+        GraphEngine["🕸️ NetworkX ナレッジグラフエンジン<br/>• ナレッジグラフ構築 (Nodes & Edges)<br/>• 双方向リンク Backlinks 算出"]
+        VectorDB["🔍 ChromaDB Vector DB<br/>• Vector Indexing & ハイブリッド検索 (Graph RAG)"]
+        
+        API -->|音声データ| Whisper
+        API -->|Markdownデータ| Parser
+        Parser --> GraphEngine
+        Parser --> VectorDB
+    end
+
+    subgraph Layer4["🧠 4. AIコア層 (HERMES AGENT CORE)"]
+        Hermes["🤖 Hermes Agent (Nous Research ChatML)<br/>• Tools定義: search, get_note, create_note, update_note<br/>• XMLタグ: <tools>, <tool_call>, <tool_response><br/>• ペルソナ設定: CEO, CFO, CMO, Second Brain"]
+        
+        Whisper -->|テキスト文字列| Hermes
+        GraphEngine -->|文脈グラフ構造| Hermes
+        VectorDB -->|Top-K 文脈ベクトル| Hermes
+        Hermes -->|3. 発行 <tool_call>| API
+    end
+
+    subgraph Layer5["💾 5. ストレージ層 (OBSIDIAN VAULT)"]
+        Vault["📁 Obsidian Vault ローカルディレクトリ (.md)<br/>• YAML Frontmatter: tags, date, author, category<br/>• 双方向リンク: [[Kenichi]], [[Du_an_2_team]]<br/>• Local-first プレーンテキスト保全"]
+        
+        Hermes -->|4. 自動作成・追記 .md| Vault
+        Vault -->|過去メモの読み込み| Hermes
+    end
+
+    API -->|5. LINE Flex Message 返答| LINE
