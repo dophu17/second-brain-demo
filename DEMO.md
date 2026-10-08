@@ -69,16 +69,18 @@ vault/
 
 ---
 
-## 🟡 4. CÁC KỸ THUẬT CẦN TRIỂN KHAI THÊM (Nâng cấp Cốt lõi AI & Data)
+## 🟢 4. CÁC KỸ THUẬT NÂNG CẤP CỐT LÕI AI & DATA (Đã Triển khai Hoàn tất)
 
-| STT | Kỹ thuật / Công nghệ Nâng cấp | Kế hoạch Phase | Chi tiết Dự kiến Triển khai |
+| STT | Kỹ thuật / Công nghệ Nâng cấp | Trạng thái | Chi tiết Đã Triển khai |
 | --- | --- | --- | --- |
-| 1 | **ChromaDB Vector Store & Hybrid Search (Graph RAG)** | **Phase 2** | Tích hợp ChromaDB Vector DB kết hợp Embedding Model (`bge-m3`). Kết hợp **Vector Semantic Search** (tìm kiếm theo ngữ nghĩa) + **NetworkX Graph Traversal** (tìm kiếm theo liên kết 2 chiều). |
-| 2 | **Advanced Multi-Persona Prompt Engineering** | **Phase 3** | Xây dựng bộ System Prompts đóng vai chuyên sâu cho các nhân sự ảo: **CEO Trang trại** (Tầm nhìn & Lộ trình), **CFO Nông sản** (Chi phí & Giá thị trường), **Second Brain** (Trợ lý cá nhân). |
-| 3 | **Automatic Vault Note Refactoring & Conflict Resolution** | **Phase 3** | Khi có thông tin mới trùng lặp hoặc mâu thuẫn, AI Agent tự động phát hiện và thực thi `update_note` để gộp/nối nội dung note cũ mà không làm hỏng cấu trúc YAML Frontmatter. |
-| 4 | **Graph RAG Memory Summarization** | **Phase 3** | Tự động tạo ghi chú tóm tắt tuần/tháng (Weekly/Monthly Knowledge Summary) bóc tách tự động từ tất cả nhật ký trang trại trong Vault. |
+| 1 | **ChromaDB Vector Store & Hybrid Search (Graph RAG)** | **🟢 Đã Hoàn Thành** | Tích hợp `vector_engine.py` với **ChromaDB Client**. Kết hợp **Vector Semantic Search** (tìm kiếm ngữ nghĩa) + **NetworkX Graph Traversal** (đồ thị tri thức 2 chiều) tạo nên mô hình **Hybrid Graph RAG**. |
+| 2 | **Advanced Multi-Persona Prompt Engineering** | **🟢 Đã Hoàn Thành** | Xây dựng bộ System Prompts đóng vai chuyên sâu cho các nhân sự ảo: **Agricultural Expert** (Chuyên gia Cây trồng), **Livestock Expert** (Chuyên gia Chăn nuôi & Thú y gia súc), **Second Brain** (Trợ lý Virtual Second Brain). |
+
+| 3 | **Automatic Vault Note Refactoring & Conflict Resolution** | **🟢 Đã Hoàn Thành** | Tích hợp Tool Calling `update_note` trong `hermes_agent.py` & `obsidian_parser.py`. AI Agent tự động phát hiện và thực thi nối/gộp nội dung note cũ mà không làm hỏng YAML Frontmatter. |
+| 4 | **Graph RAG Memory Summarization** | **🟢 Đã Hoàn Thành** | Tích hợp Tool Calling `summarize_vault`. Tự động bóc tách tri thức từ tất cả nhật ký nông trại trong Vault và tạo ghi chú tóm tắt tuần/tháng (`00_Nhat_Ky_Trang_Trai/*_Bao_Cao_Tom_Tat_Nong_Trai.md`) liên kết Wiki-links. |
 
 ---
+
 
 ## 🌾 5. Kịch bản Demo Nông nghiệp Thông minh Nhật Bản (Japanese Smart Farm)
 

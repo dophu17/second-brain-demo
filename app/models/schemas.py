@@ -30,7 +30,8 @@ class UpdateNoteRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    persona: Optional[str] = "SecondBrain"  # Options: SecondBrain, CEO, CFO, CMO
+    persona: Optional[str] = "SecondBrain"  # Options: SecondBrain, AgriculturalExpert, LivestockExpert
+
 
 class ToolCall(BaseModel):
     name: str
