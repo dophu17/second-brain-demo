@@ -1,5 +1,6 @@
 import re
 import os
+import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 import frontmatter
@@ -15,7 +16,6 @@ class ObsidianParser:
     def extract_wiki_links(self, content: str) -> List[str]:
         """Trích xuất các đường dẫn 2 chiều [[Wiki-links]] từ nội dung Markdown."""
         matches = re.findall(r"\[\[(.*?)\]\]", content)
-        # Loại bỏ alias trong link (ví dụ [[Note_Name|Display Name]] -> Note_Name)
         clean_links = [match.split("|")[0].strip() for match in matches]
         return list(set(clean_links))
 
@@ -82,19 +82,20 @@ class ObsidianParser:
 
     def create_note(self, req: CreateNoteRequest) -> NoteItem:
         """Tạo mới một ghi chú Markdown với YAML Frontmatter chuẩn vào Vault."""
-        target_dir = self.vault_path / req.folder
+        # Sanitize folder và title (lọc bỏ ngoặc [[...]])
+        clean_folder = req.folder.replace("[", "").replace("]", "").strip()
+        clean_title = req.title.replace("[", "").replace("]", "").strip()
+        
+        target_dir = self.vault_path / clean_folder
         target_dir.mkdir(parents=True, exist_ok=True)
         
-        # Đảm bảo tên file an toàn
-        safe_title = re.sub(r'[\\/*?:"<>|]', "_", req.title)
+        safe_title = re.sub(r'[\\/*?:"<>|]', "_", clean_title)
         file_path = target_dir / f"{safe_title}.md"
         
         post = frontmatter.Post(req.content)
-        post["title"] = req.title
+        post["title"] = clean_title
         post["tags"] = req.tags
         post["author"] = req.author
-        
-        import datetime
         post["date"] = datetime.date.today().isoformat()
         
         with open(file_path, "w", encoding="utf-8") as f:
@@ -103,14 +104,46 @@ class ObsidianParser:
         return self.parse_file(file_path)
 
     def update_note(self, relative_path: str, content_append: Optional[str] = None, tags_add: Optional[List[str]] = None) -> Optional[NoteItem]:
-        """Chỉnh sửa / nối thêm nội dung hoặc bổ sung tags vào file Markdown cũ."""
-        file_path = self.vault_path / relative_path
-        if not file_path.exists():
-            return None
+        """Chỉnh sửa / nối thêm nội dung & giải quyết mâu thuẫn dữ liệu (Conflict Resolution)."""
+        # 0. Sanitize relative_path (xóa bỏ ngoặc [[...]])
+        clean_rel_path = relative_path.replace("[", "").replace("]", "").strip()
+        target_path = self.vault_path / clean_rel_path
+        
+        # 1. Nếu không tìm thấy đường dẫn chính xác, thử tìm theo từ khóa tên file/title
+        if not target_path.exists():
+            clean_name = Path(clean_rel_path).stem.replace("Khach_Hang_", "").replace("Ghi_Chu_", "")
+            search_results = self.search_notes(clean_name)
+            if search_results:
+                target_path = self.vault_path / search_results[0].relative_path
+        
+        # 2. Nếu vẫn chưa tồn tại, tự động UPSERT (tạo mới file)
+        if not target_path.exists():
+            folder = "30_Doi_Tac_Khach_Hang" if any(k in clean_rel_path.lower() for k in ["yamoto", "yamato", "kenichi", "khach", "doi_tac", "partner"]) else "00_Nhat_Ky_Trang_Trai"
+            stem_title = Path(clean_rel_path).stem
+            title = f"Khach_Hang_{stem_title}" if "Khach_Hang_" not in stem_title and folder == "30_Doi_Tac_Khach_Hang" else stem_title
             
-        post = frontmatter.load(file_path)
+            req = CreateNoteRequest(
+                title=title,
+                folder=folder,
+                tags=tags_add or ["client", "updated"],
+                content=f"# 👤 {title}\n\n- **Sinh nhật:** 24 tháng 3.\n- **Cập nhật:** {content_append or 'Thông tin mới'}",
+                author="SecondBrain Auto-UPSERT"
+            )
+            return self.create_note(req)
+
+        # 3. Nối nội dung & Giải quyết mâu thuẫn dữ liệu (Conflict Resolution for Birthday/Fields)
+        post = frontmatter.load(target_path)
         if content_append:
-            post.content = post.content.rstrip() + f"\n\n---\n*Cập nhật:* {content_append}\n"
+            # Nếu nội dung cập nhật chứa thông tin sinh nhật mới, thay thế trực tiếp dòng Sinh nhật cũ trong Markdown
+            bday_match = re.search(r"(\d{1,2}\s+tháng\s+\d{1,2})", content_append, re.IGNORECASE)
+            if "sinh nhật" in content_append.lower() and bday_match:
+                new_bday = bday_match.group(1)
+                if re.search(r"-\s*\*\*Sinh nhật:\*\*\s*.*", post.content, re.IGNORECASE):
+                    post.content = re.sub(r"-\s*\*\*Sinh nhật:\*\*\s*.*", f"- **Sinh nhật:** {new_bday}.", post.content)
+                else:
+                    post.content = post.content.rstrip() + f"\n- **Sinh nhật:** {new_bday}.\n"
+            
+            post.content = post.content.rstrip() + f"\n- **Cập nhật ({datetime.date.today()}):** {content_append}\n"
             
         if tags_add:
             existing_tags = post.get("tags", [])
@@ -119,9 +152,9 @@ class ObsidianParser:
             combined = list(set(existing_tags + tags_add))
             post["tags"] = combined
             
-        with open(file_path, "w", encoding="utf-8") as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             f.write(frontmatter.dumps(post))
             
-        return self.parse_file(file_path)
+        return self.parse_file(target_path)
 
 obsidian_parser = ObsidianParser()

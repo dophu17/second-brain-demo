@@ -145,8 +145,8 @@ class HermesAgentService:
             if note:
                 graph_engine.build_graph()
                 vector_engine.index_vault()
-                return True, f"Cập nhật thành công ghi chú: {rel_path}", note.dict()
-            return False, f"Không tìm thấy ghi chú tại đường dẫn: {rel_path}", None
+                return True, f"Cập nhật thành công ghi chú: {note.relative_path}", note.dict()
+            return False, f"Không thể cập nhật ghi chú tại đường dẫn: {rel_path}", None
             
         elif name == "search_notes":
             query = args.get("query", "")
@@ -182,63 +182,89 @@ class HermesAgentService:
         return False, f"Unknown tool: {name}", None
 
     def process_chat(self, user_message: str, persona: str = "SecondBrain") -> ChatResponse:
-        """Xử lý luồng ChatML Tool Calling, Dynamic RAG Context & Dynamic Synthesis."""
+        """Xử lý luồng Multilingual Dynamic RAG Context & Dynamic Synthesis (JP / VI / EN)."""
         user_msg_lower = user_message.lower()
 
-        # 1. DYNAMIC RAG HYBRID SEARCH: Lọc Node Đồ thị Tri thức khớp chính xác
+        # 1. MULTILINGUAL HYBRID SEARCH (JP & VI & EN)
         graph_context = []
         matched_target_nodes = []
 
         keywords_map = {
             "dưa lưới": "Crown_Melon_Shizuoka",
             "melon": "Crown_Melon_Shizuoka",
+            "メロン": "Crown_Melon_Shizuoka",
+            "クラウンメロン": "Crown_Melon_Shizuoka",
             "bò": "Wagyu_Kagoshima",
             "wagyu": "Wagyu_Kagoshima",
+            "和牛": "Wagyu_Kagoshima",
+            "カゴシマ": "Wagyu_Kagoshima",
+            "鹿児島": "Wagyu_Kagoshima",
+            "食欲": "Wagyu_Kagoshima",
+            "giảm ăn": "Wagyu_Kagoshima",
+            "sốt": "Wagyu_Kagoshima",
+            "thú y": "Wagyu_Kagoshima",
             "kenichi": "Khach_Hang_Kenichi",
+            "ケンイチ": "Khach_Hang_Kenichi",
+            "yamoto": "Khach_Hang_Yamoto",
+            "ヤモト": "Khach_Hang_Yamoto",
             "ja": "Hiep_Hoi_JA",
-            "giá": "Gia_Ca_Nong_San_Nhat_Ban"
+            "農協": "Hiep_Hoi_JA",
+            "giá": "Gia_Ca_Nong_San_Nhat_Ban",
+            "price": "Gia_Ca_Nong_San_Nhat_Ban",
+            "価格": "Gia_Ca_Nong_San_Nhat_Ban",
+            "相場": "Gia_Ca_Nong_San_Nhat_Ban"
         }
         
         for kw, target_node in keywords_map.items():
             if kw in user_msg_lower:
                 matched_target_nodes.append(target_node)
                 graph_context.append(target_node)
-                
+
+        # Vector Semantic Search
+        vector_hits = vector_engine.vector_search(user_message, top_k=3)
+        for hit in vector_hits:
+            hit_stem = hit.get("title", "")
+            if hit_stem and "Tom_Tat" not in hit_stem:
+                matched_target_nodes.append(hit_stem)
+                graph_context.append(hit_stem)
+
+        # Quét thêm từ khóa trực tiếp từ Obsidian Parser Full-Text
+        words = [w for w in re.findall(r'\w+', user_message) if len(w) > 2]
+        for word in words:
+            found = obsidian_parser.search_notes(word)
+            for f_note in found:
+                if f_note.title not in matched_target_nodes:
+                    matched_target_nodes.append(f_note.title)
+                    graph_context.append(f_note.title)
+
         wiki_links = obsidian_parser.extract_wiki_links(user_message)
         for link in wiki_links:
             matched_target_nodes.append(link)
             graph_context.append(link)
 
-        if not matched_target_nodes:
-            vector_hits = vector_engine.vector_search(user_message, top_k=2)
-            for hit in vector_hits:
-                hit_stem = hit.get("title", "")
-                if hit_stem and "Tom_Tat" not in hit_stem:
-                    matched_target_nodes.append(hit_stem)
-                    graph_context.append(hit_stem)
-
-        # 2. XÂY DỰNG RAG CONTEXT TEXT TỪ OBSIDIAN VAULT
+        # 2. XÂY DỰNG MULTILINGUAL RAG CONTEXT TEXT TỪ OBSIDIAN VAULT
         rag_context_text = ""
         unique_nodes = list(set(graph_context))
         for node in unique_nodes:
             notes = obsidian_parser.search_notes(node)
             for n in notes:
-                # Không đưa file tóm tắt lớn vào context trừ khi hỏi tóm tắt
-                if "Tom_Tat" in n.title and not any(k in user_msg_lower for k in ["tóm tắt", "báo cáo"]):
+                if "Tom_Tat" in n.title and not any(k in user_msg_lower for k in ["tóm tắt", "báo cáo", "要約", "まとめ"]):
                     continue
-                rag_context_text += f"\n--- 📄 Ghi chú Vault [[{n.title}]] ---\n{n.content}\n"
+                rag_context_text += f"\n--- 📄 Vault Note [[{n.title}]] ---\n{n.content}\n"
 
-        # 3. DYNAMIC MULTI-PERSONA PROMPT ENGINEERING WITH RAG CONTEXT
+        # 3. DYNAMIC MULTI-PERSONA PROMPT ENGINEERING (MULTILINGUAL JP/VI/EN)
         system_prompt = HERMES_SYSTEM_PROMPT
+        system_prompt += "\n\nCRITICAL LANGUAGE INSTRUCTION: Always respond in the EXACT SAME LANGUAGE as the user's question. If the user asks in Japanese, answer in fluent Japanese. If the user asks in Vietnamese, answer in Vietnamese."
+
         if persona == "AgriculturalExpert":
-            system_prompt += "\nPersona constraint (Agricultural Expert): Bạn đóng vai Chuyên gia Nông nghiệp chuyên sâu về Cây trồng (Dưa lưới Crown Melon, nhà kính Glasshouse). Trả lời tập trung, ngắn gọn, chính xác vào đúng câu hỏi dựa trên dữ liệu Vault."
+            system_prompt += "\nPersona constraint (Agricultural Expert): You are a leading Japanese Smart Agriculture Crop Expert (Crown Melon Shizuoka, Glasshouse greenhouse). Answer concisely and accurately based on the Vault context."
         elif persona == "LivestockExpert":
-            system_prompt += "\nPersona constraint (Livestock Expert): Bạn đóng vai Chuyên gia Chăn nuôi & Thú y gia súc (Bò Wagyu A5). Trả lời tập trung, ngắn gọn, chính xác vào đúng câu hỏi dựa trên dữ liệu Vault."
+            system_prompt += "\nPersona constraint (Livestock Expert): You are a leading Japanese Livestock & Veterinary Expert (Kagoshima Wagyu A5 beef cattle). Answer concisely and accurately based on the Vault context."
         else:
-            system_prompt += "\nPersona constraint (Second Brain Assistant): Bạn đóng vai Trợ lý Virtual Second Brain Quản lý Nông trại Thông minh. Trả lời tập trung, chính xác 100% vào đúng câu hỏi của người dùng từ dữ liệu Vault."
+            system_prompt += "\nPersona constraint (Second Brain Assistant): You are an intelligent Virtual Second Brain Farm Management Assistant. Answer concisely and 100% accurately based on the Vault context."
 
         if rag_context_text:
-            system_prompt += f"\n\nTri thức liên quan được trích xuất từ Obsidian Vault:\n{rag_context_text}\n\nYÊU CẦU QUAN TRỌNG: Hãy trả lời ĐÚNG và CHÍNH XÁC mục tiêu câu hỏi của người dùng. Nếu hỏi 'khi nào' thì chỉ trả lời thời gian/ngày tháng; nếu hỏi 'tặng gì' thì gợi ý quà tặng; nếu hỏi 'giá bao nhiêu' thì trả lời con số giá cả. Tránh trả lời thừa thông tin không được hỏi."
+            system_prompt += f"\n\nRetrieved Knowledge Context from Obsidian Vault:\n{rag_context_text}\n\nINSTRUCTION: Answer the specific question directly using the retrieved vault data above. Be direct and concise."
 
         # 4. GỌI OLLAMA LOCAL LLM ĐỂ TỔNG HỢP CÂU TRẢ LỜI ĐỘNG
         ai_response = self.query_ollama(system_prompt, user_message)
@@ -246,10 +272,16 @@ class HermesAgentService:
         # 5. PHÂN TÍCH & THỰC THI TOOL CALLS
         tool_calls = self.parse_tool_calls(ai_response)
         executed_results = []
-        
-        if not tool_calls:
-            if any(kw in user_msg_lower for kw in ["tóm tắt", "báo cáo tuần", "báo cáo tháng"]):
-                tool_calls.append(("summarize_vault", {"summary_title": f"{datetime.date.today()}_Bao_Cao_Tom_Tat_Nong_Trai"}))
+
+        # Tự động phát hiện intent cập nhật / bổ sung dữ liệu note nếu Hermes chưa gọi tool
+        if not tool_calls and any(kw in user_msg_lower for kw in ["cập nhật", "bổ sung", "sửa", "lưu", "thêm", "更新", "追加"]):
+            target_name = "Yamoto" if "yamoto" in user_msg_lower or "ヤモト" in user_msg_lower else ("Kenichi" if "kenichi" in user_msg_lower else "Trang_Trai")
+            rel_path = f"30_Doi_Tac_Khach_Hang/Khach_Hang_{target_name}.md" if target_name != "Trang_Trai" else "00_Nhat_Ky_Trang_Trai/Nhat_Ky.md"
+            tool_calls.append(("update_note", {
+                "relative_path": rel_path,
+                "content_append": user_message,
+                "tags_add": ["client", "updated"]
+            }))
 
         for name, args in tool_calls:
             success, msg, data = self.execute_tool(name, args)
@@ -261,27 +293,42 @@ class HermesAgentService:
                 "data": data
             })
 
-        # 6. PHẢN HỒI CUỐI CÙNG (DYNAMIC SYNTHESIZED RESPONSE)
+        # 6. PHẢN HỒI THỰC TẾ (DYNAMIC RESPONSE RETURN)
         final_reply = ""
         
-        # Xử lý kết quả linh hoạt từ LLM hoặc Fallback thông minh
-        if ai_response and "name" not in ai_response and len(ai_response.strip()) > 10:
-            final_reply = ai_response.strip()
-        else:
-            # Fallback linh hoạt theo câu hỏi cụ thể nếu LLM bận
-            if "khi nào" in user_msg_lower and "kenichi" in user_msg_lower:
-                final_reply = "📅 **Ngày sinh nhật của Ngài Kenichi là:** **15 tháng 10** (Được trích xuất từ hồ sơ khách hàng VIP [[Khach_Hang_Kenichi]])."
-            elif any(kw in user_msg_lower for kw in ["tặng gì", "gợi ý", "quà"]) and "kenichi" in user_msg_lower:
-                final_reply = (
-                    "🎁 **Gợi ý quà tặng sinh nhật dành cho Ngài Kenichi (trích xuất từ sở thích trong [[Khach_Hang_Kenichi]]):**\n"
-                    "1. 🍵 **Bộ dụng cụ Trà đạo Matcha Nhật Bản cao cấp**\n"
-                    "2. 🏌️‍♂️ **Phụ kiện chơi Golf cao cấp** (bóng khắc tên / bao gậy da)\n"
-                    "3. ✒️ **Bút máy cổ (Fountain Pen)** phiên bản giới hạn hoặc cặp dưa lưới **[[Crown_Melon_Shizuoka]]**."
+        # Nếu có Tool Calling `update_note` thực thi thành công
+        for res in executed_results:
+            if res["tool"] == "update_note" and res.get("success"):
+                note_data = res.get("data", {})
+                raw_title = note_data.get("title", "Ghi_Chu").replace("[", "").replace("]", "")
+                final_reply = f"📝 **Đã cập nhật tri thức thành công vào Obsidian Vault:**\n- **Ghi chú:** [[{raw_title}]]\n- **Nội dung ghi nhận:** {user_message}"
+                break
+
+            elif res["tool"] == "search_notes" and res.get("data"):
+                found_notes = res["data"]
+                tool_context_text = ""
+                for fn in found_notes:
+                    fn_title = fn.get("title", "")
+                    fn_content = fn.get("content", "")
+                    tool_context_text += f"\n--- 📄 Note [[{fn_title}]] ---\n{fn_content}\n"
+                    if fn_title not in unique_nodes:
+                        unique_nodes.append(fn_title)
+                
+                tool_prompt = (
+                    f"{system_prompt}\n"
+                    f"User Question: '{user_message}'\n"
+                    f"Found Notes Data:\n{tool_context_text}\n"
+                    f"INSTRUCTION: Answer the question directly in the SAME LANGUAGE as the user's question."
                 )
-            elif "giá" in user_msg_lower and "bò" in user_msg_lower:
-                final_reply = "🥩 **Giá thịt bò Wagyu Kagoshima A5:** **25.000 Yên / kg** (Trích xuất từ bảng báo giá [[Gia_Ca_Nong_San_Nhat_Ban]] & [[Wagyu_Kagoshima]])."
-            elif "nắng" in user_msg_lower or "mưa" in user_msg_lower:
-                final_reply = "☀️ **Dưa lưới Crown Melon Shizuoka rất THÍCH NẮNG** (cần ánh nắng mặt trời trong nhà kính để tạo độ ngọt Brix & vân lưới) và **KHÔNG THÍCH MƯA NGẬP** (trích xuất từ [[Crown_Melon_Shizuoka]])."
+                tool_synth = self.query_ollama(tool_prompt, user_message)
+                if tool_synth and len(tool_synth.strip()) > 5:
+                    final_reply = tool_synth.strip()
+
+        if not final_reply:
+            if ai_response and "name" not in ai_response and len(ai_response.strip()) > 10:
+                final_reply = ai_response.strip()
+            elif rag_context_text:
+                final_reply = f"🤖 **Trích xuất Tri thức từ Obsidian Vault của bạn:**\n{rag_context_text}"
             else:
                 final_reply = "Đã xử lý thông tin tri thức trong Vault của bạn."
 
