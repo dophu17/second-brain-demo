@@ -66,6 +66,7 @@ vault/
 | 5 | **Entity-Centric Context Ingestion** | 🟢 **Hoàn thành** | Tự động đọc và trích xuất thuộc tính thực thể (ví dụ: sở thích trà đạo, sinh nhật của ngài Kenichi trong `Khach_Hang_Kenichi.md`) để AI tự động suy luận & gợi ý quà tặng / quyết định cá nhân hóa. |
 | 6 | **Docker Containerization & Network Host Routing** | 🟢 **Hoàn thành** | Đóng gói ứng dụng bằng Docker Compose (`ports: 8008:8000`), định tuyến mạng `host.docker.internal:11434` kết nối Ollama offline không cần gọi API đám mây. |
 | 7 | **RESTful API & OpenAPI Interactive UI** | 🟢 **Hoàn thành** | FastAPI server cung cấp các endpoints `/api/demo/chat`, `/api/demo/notes`, `/api/demo/graph` và Swagger UI tương tác tại `http://localhost:8008/docs`. |
+| 8 | **LINE-Style Web Chatbox Interface** | 🟢 **Hoàn thành** | Phục vụ Giao diện Web Chatbox trực quan phong cách LINE (`#06C755`) tại `http://localhost:8008/` cho phép trò chuyện trực tiếp, chuyển đổi 3 Persona (`AgriculturalExpert`, `LivestockExpert`, `SecondBrain`), bấm nhanh câu hỏi mẫu và hiển thị node `graph_context`. |
 
 ---
 
