@@ -221,21 +221,12 @@ class HermesAgentService:
                 graph_context.append(target_node)
 
         # Vector Semantic Search
-        vector_hits = vector_engine.vector_search(user_message, top_k=3)
+        vector_hits = vector_engine.vector_search(user_message, top_k=2)
         for hit in vector_hits:
             hit_stem = hit.get("title", "")
             if hit_stem and "Tom_Tat" not in hit_stem:
                 matched_target_nodes.append(hit_stem)
                 graph_context.append(hit_stem)
-
-        # Quét thêm từ khóa trực tiếp từ Obsidian Parser Full-Text
-        words = [w for w in re.findall(r'\w+', user_message) if len(w) > 2]
-        for word in words:
-            found = obsidian_parser.search_notes(word)
-            for f_note in found:
-                if f_note.title not in matched_target_nodes:
-                    matched_target_nodes.append(f_note.title)
-                    graph_context.append(f_note.title)
 
         wiki_links = obsidian_parser.extract_wiki_links(user_message)
         for link in wiki_links:
@@ -257,14 +248,14 @@ class HermesAgentService:
         system_prompt += "\n\nCRITICAL LANGUAGE INSTRUCTION: Always respond in the EXACT SAME LANGUAGE as the user's question. If the user asks in Japanese, answer in fluent Japanese. If the user asks in Vietnamese, answer in Vietnamese."
 
         if persona == "AgriculturalExpert":
-            system_prompt += "\nPersona constraint (Agricultural Expert): You are a leading Japanese Smart Agriculture Crop Expert (Crown Melon Shizuoka, Glasshouse greenhouse). Answer concisely and accurately based on the Vault context."
+            system_prompt += "\nPersona constraint (Agricultural Expert): You are a leading Japanese Smart Agriculture Crop Expert (Crown Melon Shizuoka, Glasshouse greenhouse). Answer concisely, directly and accurately in 2-3 sentences based on the Vault context."
         elif persona == "LivestockExpert":
-            system_prompt += "\nPersona constraint (Livestock Expert): You are a leading Japanese Livestock & Veterinary Expert (Kagoshima Wagyu A5 beef cattle). Answer concisely and accurately based on the Vault context."
+            system_prompt += "\nPersona constraint (Livestock Expert): You are a leading Japanese Livestock & Veterinary Expert (Kagoshima Wagyu A5 beef cattle). Answer concisely, directly and accurately in 2-3 sentences based on the Vault context."
         else:
-            system_prompt += "\nPersona constraint (Second Brain Assistant): You are an intelligent Virtual Second Brain Farm Management Assistant. Answer concisely and 100% accurately based on the Vault context."
+            system_prompt += "\nPersona constraint (Second Brain Assistant): You are an intelligent Virtual Second Brain Farm Management Assistant. Answer concisely, directly and 100% accurately in 2-3 sentences based on the Vault context."
 
         if rag_context_text:
-            system_prompt += f"\n\nRetrieved Knowledge Context from Obsidian Vault:\n{rag_context_text}\n\nINSTRUCTION: Answer the specific question directly using the retrieved vault data above. Be direct and concise."
+            system_prompt += f"\n\nRetrieved Knowledge Context from Obsidian Vault:\n{rag_context_text}\n\nINSTRUCTION: Answer the specific question directly and concisely in 2-3 clear sentences using strictly the retrieved vault data above. Do not include unrelated topics or extraneous details."
 
         # 4. GỌI OLLAMA LOCAL LLM ĐỂ TỔNG HỢP CÂU TRẢ LỜI ĐỘNG
         ai_response = self.query_ollama(system_prompt, user_message)
@@ -274,7 +265,8 @@ class HermesAgentService:
         executed_results = []
 
         # Tự động phát hiện intent cập nhật / bổ sung dữ liệu note nếu Hermes chưa gọi tool
-        if not tool_calls and any(kw in user_msg_lower for kw in ["cập nhật", "bổ sung", "sửa", "lưu", "thêm", "更新", "追加"]):
+        update_intents = ["cập nhật", "thêm ghi chú", "lưu ghi chú", "bổ sung ghi chú", "更新", "追加"]
+        if not tool_calls and any(intent in user_msg_lower for intent in update_intents):
             target_name = "Yamoto" if "yamoto" in user_msg_lower or "ヤモト" in user_msg_lower else ("Kenichi" if "kenichi" in user_msg_lower else "Trang_Trai")
             rel_path = f"30_Doi_Tac_Khach_Hang/Khach_Hang_{target_name}.md" if target_name != "Trang_Trai" else "00_Nhat_Ky_Trang_Trai/Nhat_Ky.md"
             tool_calls.append(("update_note", {
@@ -294,40 +286,59 @@ class HermesAgentService:
             })
 
         # 6. PHẢN HỒI THỰC TẾ (DYNAMIC RESPONSE RETURN)
+        clean_ai_resp = re.sub(r"<tool_call>.*?</tool_call>", "", ai_response, flags=re.DOTALL).strip()
+        # Loại bỏ trường hợp LLM sinh chuỗi JSON tool call thô
+        if clean_ai_resp.startswith("{") and "name" in clean_ai_resp and "arguments" in clean_ai_resp:
+            clean_ai_resp = ""
+
         final_reply = ""
-        
-        # Nếu có Tool Calling `update_note` thực thi thành công
+
+        # Ưu tiên hiển thị kết quả báo cáo tóm tắt tri thức nếu có gọi summarize_vault
         for res in executed_results:
-            if res["tool"] == "update_note" and res.get("success"):
+            if res["tool"] == "summarize_vault" and res.get("success"):
+                note_data = res.get("data", {})
+                note_content = note_data.get("content", "")
+                final_reply = f"📊 **Đã tổng hợp tri thức và tạo Báo cáo Tóm tắt Graph RAG tự động vào Vault:**\n\n{note_content}"
+                break
+            elif res["tool"] == "create_note" and res.get("success") and not clean_ai_resp:
+                note_data = res.get("data", {})
+                raw_title = note_data.get("title", "Ghi_Chu").replace("[", "").replace("]", "")
+                final_reply = f"✨ **Đã tạo mới ghi chú thành công vào Obsidian Vault:**\n- **Ghi chú:** [[{raw_title}]]"
+                break
+            elif res["tool"] == "update_note" and res.get("success") and not clean_ai_resp:
                 note_data = res.get("data", {})
                 raw_title = note_data.get("title", "Ghi_Chu").replace("[", "").replace("]", "")
                 final_reply = f"📝 **Đã cập nhật tri thức thành công vào Obsidian Vault:**\n- **Ghi chú:** [[{raw_title}]]\n- **Nội dung ghi nhận:** {user_message}"
                 break
 
-            elif res["tool"] == "search_notes" and res.get("data"):
-                found_notes = res["data"]
-                tool_context_text = ""
-                for fn in found_notes:
-                    fn_title = fn.get("title", "")
-                    fn_content = fn.get("content", "")
-                    tool_context_text += f"\n--- 📄 Note [[{fn_title}]] ---\n{fn_content}\n"
-                    if fn_title not in unique_nodes:
-                        unique_nodes.append(fn_title)
-                
-                tool_prompt = (
-                    f"{system_prompt}\n"
-                    f"User Question: '{user_message}'\n"
-                    f"Found Notes Data:\n{tool_context_text}\n"
-                    f"INSTRUCTION: Answer the question directly in the SAME LANGUAGE as the user's question."
-                )
-                tool_synth = self.query_ollama(tool_prompt, user_message)
-                if tool_synth and len(tool_synth.strip()) > 5:
-                    final_reply = tool_synth.strip()
+        # Nếu chưa có final_reply từ Tool và AI có câu trả lời tự nhiên
+        if not final_reply:
+            if clean_ai_resp and len(clean_ai_resp) > 10:
+                final_reply = clean_ai_resp
+            elif executed_results:
+                for res in executed_results:
+                    if res["tool"] == "search_notes" and res.get("data"):
+                        found_notes = res["data"]
+                        tool_context_text = ""
+                        for fn in found_notes:
+                            fn_title = fn.get("title", "")
+                            fn_content = fn.get("content", "")
+                            tool_context_text += f"\n--- 📄 Note [[{fn_title}]] ---\n{fn_content}\n"
+                            if fn_title not in unique_nodes:
+                                unique_nodes.append(fn_title)
+                        
+                        tool_prompt = (
+                            f"{system_prompt}\n"
+                            f"User Question: '{user_message}'\n"
+                            f"Found Notes Data:\n{tool_context_text}\n"
+                            f"INSTRUCTION: Answer the question directly in the SAME LANGUAGE as the user's question."
+                        )
+                        tool_synth = self.query_ollama(tool_prompt, user_message)
+                        if tool_synth and len(tool_synth.strip()) > 5:
+                            final_reply = tool_synth.strip()
 
         if not final_reply:
-            if ai_response and "name" not in ai_response and len(ai_response.strip()) > 10:
-                final_reply = ai_response.strip()
-            elif rag_context_text:
+            if rag_context_text:
                 final_reply = f"🤖 **Trích xuất Tri thức từ Obsidian Vault của bạn:**\n{rag_context_text}"
             else:
                 final_reply = "Đã xử lý thông tin tri thức trong Vault của bạn."

@@ -1,9 +1,13 @@
 ---
-title: Quy trình Chăn nuôi Bò Wagyu Kagoshima (鹿児島和牛)
-tags: [chan_nuoi, bo_wagyu, thu_y, dinh_duong]
-date: 2026-10-07
 author: Bác sĩ Thú y (Veterinarian)
 category: Chăn nuôi
+date: 2026-10-07
+tags:
+- chan_nuoi
+- bo_wagyu
+- thu_y
+- dinh_duong
+title: Quy trình Chăn nuôi Bò Wagyu Kagoshima (鹿児島和牛)
 ---
 
 # 🐄 Quy trình Chăn nuôi & Thú y Bò Wagyu Kagoshima
@@ -16,3 +20,4 @@ category: Chăn nuôi
   - Nếu bò có dấu hiệu **giảm ăn hoặc sốt nhẹ**: Kiểm tra ngay nhiệt độ cơ thể, tách chuồng cách ly, bổ sung men vi sinh đường ruột và điện giải.
 - **Phân phối:** Cung cấp cho đối tác [[Hiep_Hoi_JA]] và đặt hàng riêng của [[Khach_Hang_Kenichi]].
 - **Giá thị trường:** Xem thêm [[Gia_Ca_Nong_San_Nhat_Ban]].
+- **Cập nhật (2026-10-08):** Nếu bò giảm ăn, cần kiểm tra ngay nhiệt độ cơ thể. Nếu bò có dấu hiệu sốt nhẹ (<39.5°C), cần tách bò ra khỏi nhóm, cách ly và cung cấp men vi sinh đường ruột cùng với điện giải để hỗ trợ hồi phục.

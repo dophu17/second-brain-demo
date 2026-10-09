@@ -5,7 +5,7 @@ tags:
 - summary
 - graph_rag
 - report
-title: 2026-10-08_Bao_Cao_Tom_Tat_Nong_Trai
+title: Bao_Cao_Tom_Tat_Nong_Trai_Tuần_Nay
 ---
 
 # 🌾 Báo cáo Tóm tắt Tri thức Trang trại Nông nghiệp Thông minh (2026-10-08)
